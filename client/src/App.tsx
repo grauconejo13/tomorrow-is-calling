@@ -1,12 +1,7 @@
-import "./App.css";
+import { HomePage } from "./pages/HomePage/HomePage";
 
 function App() {
-  return (
-    <main>
-      <h1>Tomorrow Is Calling</h1>
-      <p>Temporal communications system offline.</p>
-    </main>
-  );
+  return <HomePage />;
 }
 
 export default App;
