@@ -1,27 +1,37 @@
 import { useEffect, useState } from "react";
-import type { CallPhase, MockCallReport } from "../types/call";
+import type { PrototypeCallInterruption, PrototypeCallRecord, PrototypeCallState } from "../types/call";
 
-const demoReport: MockCallReport = {
-  outcome: "Readiness exceptions require follow-up",
-  summary: "This fictional demo assessment identified carrier confirmation and receiving availability as the immediate review areas.",
-  details: ["Carrier pickup confirmation is still pending.", "Receiving acknowledgment has not been recorded."],
-  unresolvedItems: ["Assign a backup carrier.", "Confirm ownership of final shipping-document review."],
+const TRANSITIONS: Partial<Record<PrototypeCallState, { next: PrototypeCallState; delay: number }>> = {
+  preparing: { next: "dialing", delay: 750 },
+  dialing: { next: "ringing", delay: 1_100 },
+  ringing: { next: "connected", delay: 1_450 },
+  connected: { next: "assessment", delay: 850 },
+  processing: { next: "complete", delay: 1_400 },
 };
 
 export function useMockCall() {
-  const [phase, setPhase] = useState<CallPhase>("ready");
+  const [state, setState] = useState<PrototypeCallState>("preparing");
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    if (phase !== "active") return;
+    const transition = TRANSITIONS[state];
+    if (!transition) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => setState(transition.next), reducedMotion ? 150 : transition.delay);
+    return () => window.clearTimeout(timer);
+  }, [state]);
+
+  useEffect(() => {
+    if (state !== "connected" && state !== "assessment") return;
     const interval = window.setInterval(() => setDuration(value => value + 1), 1_000);
     return () => window.clearInterval(interval);
-  }, [phase]);
+  }, [state]);
 
-  const start = () => { setDuration(0); setPhase("active"); };
-  const hangUp = () => setPhase("ended");
-  const showReport = () => setPhase("report");
-  const reset = () => { setDuration(0); setPhase("ready"); };
+  const completeAssessment = () => setState("processing");
+  const cancel = () => setState("cancelled");
+  const retry = () => { setDuration(0); setState("preparing"); };
+  const interrupt = (reason: PrototypeCallInterruption) => setState(reason);
+  const record: PrototypeCallRecord = { status: state, completionReason: state === "complete" ? "prototype-assessment-complete" : undefined };
 
-  return { phase, duration, report: demoReport, start, hangUp, showReport, reset };
+  return { state, duration, record, completeAssessment, cancel, retry, interrupt };
 }

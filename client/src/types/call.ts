@@ -1,8 +1,13 @@
-export type CallPhase = "ready" | "active" | "ended" | "report";
+export type PrototypeCallStage = "preparing" | "dialing" | "ringing" | "connected" | "assessment" | "processing" | "complete";
+export type PrototypeCallInterruption = "cancelled" | "no-answer" | "failed" | "processing-failed";
+export type PrototypeCallState = PrototypeCallStage | PrototypeCallInterruption;
 
-export type MockCallReport = {
-  outcome: string;
-  summary: string;
-  details: string[];
-  unresolvedItems: string[];
+export type PrototypeCallRecord = {
+  runId?: string;
+  status: PrototypeCallState;
+  startedAt?: number;
+  completedAt?: number;
+  completionReason?: string;
+  structuredResult?: unknown;
+  error?: string;
 };
