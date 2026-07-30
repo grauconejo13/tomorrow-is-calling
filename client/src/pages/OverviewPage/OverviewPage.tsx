@@ -8,7 +8,7 @@ export function OverviewPage({ onStart }: { onStart: () => void }) {
       <p className="eyebrow">Operational prevention protocol</p>
       <h1>Catch the delay before it becomes a missed cutoff.</h1>
       <p>Run an AI-guided voice readiness check before a critical shipment, delivery, or operational handoff.</p>
-      <button className="button button--primary" onClick={onStart}>Run a readiness check</button>
+      <button className="button button--primary" id="overview-start-check" onClick={onStart}>Run a readiness check</button>
     </section>
 
     <section className="operations-queue" aria-labelledby="queue-heading">
