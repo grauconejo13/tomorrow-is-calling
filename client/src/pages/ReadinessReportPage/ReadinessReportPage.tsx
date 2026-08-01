@@ -1,2 +1,90 @@
-import { demoReport } from "../../data/demoShipment";import { RiskItem } from "../../components/RiskItem/RiskItem";import { ActionItem } from "../../components/ActionItem/ActionItem";import { StatusBadge } from "../../components/StatusBadge/StatusBadge";import "./ReadinessReportPage.css";
-export function ReadinessReportPage({onNew,onOverview}:{onNew:()=>void;onOverview:()=>void}){return <main className="page report"><p className="eyebrow">Prototype assessment output</p><div className="report__title"><div><h1>Readiness report <span>SH-2048</span></h1><p>Time-critical shipment readiness check</p></div><StatusBadge tone="critical">At risk</StatusBadge></div><section className="report-metrics"><div><b>{demoReport.readiness}%</b><span>Departure readiness</span></div><div><b>6:30 PM</b><span>Pickup cutoff</span></div><div><b>{demoReport.preventionWindow}</b><span>Prevention window</span></div><div><b>3</b><span>Risks identified</span></div><div><b>4</b><span>Recommended actions</span></div></section><section><p className="section-label">Critical exception</p><RiskItem risk={demoReport.risks[0]}/></section><section><p className="section-label">Secondary risks</p><div className="risk-list">{demoReport.risks.slice(1).map(risk=><RiskItem risk={risk} key={risk.title}/>)}</div></section><section><p className="section-label">Recommended actions</p><ol className="action-list">{demoReport.actions.map((item,index)=><ActionItem item={item} index={index} key={item.action}/>)}</ol></section><section className="projection"><p className="section-label">Scenario projection</p><div><p><b>Without intervention:</b> The shipment is at elevated risk of missing its pickup cutoff.</p><p><b>With recommended actions:</b> The operation may remain within the dispatch window.</p></div></section><div className="form-actions"><button className="button button--primary" onClick={onNew}>Run another readiness check</button><button className="button button--quiet" onClick={onOverview}>Return to overview</button></div></main>}
+import { demoReport } from "../../data/demoShipment";
+import { RiskItem } from "../../components/RiskItem/RiskItem";
+import { ActionItem } from "../../components/ActionItem/ActionItem";
+import { StatusBadge } from "../../components/StatusBadge/StatusBadge";
+import "./ReadinessReportPage.css";
+export function ReadinessReportPage({
+  onNew,
+  onOverview,
+}: {
+  onNew: () => void;
+  onOverview: () => void;
+}) {
+  return (
+    <main className="page report">
+      <p className="eyebrow">Prototype assessment output</p>
+      <div className="report__title">
+        <div>
+          <h1>
+            Readiness report <span>SH-2048</span>
+          </h1>
+          <p>Time-critical shipment readiness check</p>
+        </div>
+        <StatusBadge tone="critical">At risk</StatusBadge>
+      </div>
+      <section className="report-metrics">
+        <div>
+          <b>{demoReport.readiness}%</b>
+          <span>Departure readiness</span>
+        </div>
+        <div>
+          <b>6:30 PM</b>
+          <span>Pickup cutoff</span>
+        </div>
+        <div>
+          <b>{demoReport.preventionWindow}</b>
+          <span>Prevention window</span>
+        </div>
+        <div>
+          <b>3</b>
+          <span>Risks identified</span>
+        </div>
+        <div>
+          <b>4</b>
+          <span>Recommended actions</span>
+        </div>
+      </section>
+      <section>
+        <p className="section-label">Critical exception</p>
+        <RiskItem risk={demoReport.risks[0]} />
+      </section>
+      <section>
+        <p className="section-label">Secondary risks</p>
+        <div className="risk-list">
+          {demoReport.risks.slice(1).map((risk) => (
+            <RiskItem risk={risk} key={risk.title} />
+          ))}
+        </div>
+      </section>
+      <section>
+        <p className="section-label">Recommended actions</p>
+        <ol className="action-list">
+          {demoReport.actions.map((item, index) => (
+            <ActionItem item={item} index={index} key={item.action} />
+          ))}
+        </ol>
+      </section>
+      <section className="projection">
+        <p className="section-label">Scenario projection</p>
+        <div>
+          <p>
+            <b>Without intervention:</b> The shipment is at elevated risk of
+            missing its pickup cutoff.
+          </p>
+          <p>
+            <b>With recommended actions:</b> The operation may remain within the
+            dispatch window.
+          </p>
+        </div>
+      </section>
+      <div className="form-actions">
+        <button className="button button--primary" onClick={onNew}>
+          Run another readiness check
+        </button>
+        <button className="button button--quiet" onClick={onOverview}>
+          Return to overview
+        </button>
+      </div>
+    </main>
+  );
+}

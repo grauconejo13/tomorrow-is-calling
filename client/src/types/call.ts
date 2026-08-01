@@ -1,5 +1,13 @@
-export type PrototypeCallStage = "preparing" | "dialing" | "ringing" | "connected" | "assessment" | "processing" | "complete";
-export type PrototypeCallInterruption = "cancelled" | "no-answer" | "failed" | "processing-failed";
+export type PrototypeCallStage =
+  | "preparing"
+  | "dialing"
+  | "ringing"
+  | "connected"
+  | "assessment"
+  | "processing"
+  | "complete";
+export type PrototypeCallInterruption =
+  "cancelled" | "no-answer" | "failed" | "processing-failed";
 export type PrototypeCallState = PrototypeCallStage | PrototypeCallInterruption;
 
 export type PrototypeCallRecord = {

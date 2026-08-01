@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import type { PrototypeCallInterruption, PrototypeCallRecord, PrototypeCallState } from "../types/call";
+import type {
+  PrototypeCallInterruption,
+  PrototypeCallRecord,
+  PrototypeCallState,
+} from "../types/call";
 
-const TRANSITIONS: Partial<Record<PrototypeCallState, { next: PrototypeCallState; delay: number }>> = {
+const TRANSITIONS: Partial<
+  Record<PrototypeCallState, { next: PrototypeCallState; delay: number }>
+> = {
   preparing: { next: "dialing", delay: 750 },
   dialing: { next: "ringing", delay: 1_100 },
   ringing: { next: "connected", delay: 1_450 },
@@ -16,22 +22,45 @@ export function useMockCall() {
   useEffect(() => {
     const transition = TRANSITIONS[state];
     if (!transition) return;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(() => setState(transition.next), reducedMotion ? 150 : transition.delay);
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const timer = window.setTimeout(
+      () => setState(transition.next),
+      reducedMotion ? 150 : transition.delay,
+    );
     return () => window.clearTimeout(timer);
   }, [state]);
 
   useEffect(() => {
     if (state !== "connected" && state !== "assessment") return;
-    const interval = window.setInterval(() => setDuration(value => value + 1), 1_000);
+    const interval = window.setInterval(
+      () => setDuration((value) => value + 1),
+      1_000,
+    );
     return () => window.clearInterval(interval);
   }, [state]);
 
   const completeAssessment = () => setState("processing");
   const cancel = () => setState("cancelled");
-  const retry = () => { setDuration(0); setState("preparing"); };
+  const retry = () => {
+    setDuration(0);
+    setState("preparing");
+  };
   const interrupt = (reason: PrototypeCallInterruption) => setState(reason);
-  const record: PrototypeCallRecord = { status: state, completionReason: state === "complete" ? "prototype-assessment-complete" : undefined };
+  const record: PrototypeCallRecord = {
+    status: state,
+    completionReason:
+      state === "complete" ? "prototype-assessment-complete" : undefined,
+  };
 
-  return { state, duration, record, completeAssessment, cancel, retry, interrupt };
+  return {
+    state,
+    duration,
+    record,
+    completeAssessment,
+    cancel,
+    retry,
+    interrupt,
+  };
 }

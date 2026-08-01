@@ -17,7 +17,10 @@ function App() {
   const [form, setForm] = useState<ReadinessCheckForm>(demoForm);
   const [callOpen, setCallOpen] = useState(false);
   const restoreOverviewFocus = useRef(false);
-  const show = (next: AppView) => { setCallOpen(false); setView(next); };
+  const show = (next: AppView) => {
+    setCallOpen(false);
+    setView(next);
+  };
 
   useEffect(() => {
     if (restoreOverviewFocus.current && view === "overview") {
@@ -28,13 +31,62 @@ function App() {
 
   let page;
   switch (view) {
-    case "new-check": page = <NewReadinessCheckPage initial={form} onReview={data => { setForm(data); show("review"); }} onCancel={() => show("overview")} />; break;
-    case "review": page = <ReviewCallPage data={form} onBegin={() => setCallOpen(true)} onEdit={() => show("new-check")} />; break;
-    case "report": page = <ReadinessReportPage onNew={() => show("new-check")} onOverview={() => show("overview")} />; break;
-    default: page = <OverviewPage onStart={() => show("new-check")} />;
+    case "new-check":
+      page = (
+        <NewReadinessCheckPage
+          initial={form}
+          onReview={(data) => {
+            setForm(data);
+            show("review");
+          }}
+          onCancel={() => show("overview")}
+        />
+      );
+      break;
+    case "review":
+      page = (
+        <ReviewCallPage
+          data={form}
+          onBegin={() => setCallOpen(true)}
+          onEdit={() => show("new-check")}
+        />
+      );
+      break;
+    case "report":
+      page = (
+        <ReadinessReportPage
+          onNew={() => show("new-check")}
+          onOverview={() => show("overview")}
+        />
+      );
+      break;
+    default:
+      page = <OverviewPage onStart={() => show("new-check")} />;
   }
 
-  return <PageLoader><div className="app-shell" aria-hidden={callOpen || undefined}><div className="workspace"><AppHeader view={view} onOverview={() => show("overview")} />{view !== "overview" && <ProgressStepper view={view} />}{page}</div></div>{callOpen && <CallOverlay recipient={form.contact} scenario={`${form.reference} · ${form.cargo}`} onClose={() => setCallOpen(false)} onReturnHome={() => { restoreOverviewFocus.current = true; show("overview"); }} onViewReport={() => show("report")} />}</PageLoader>;
+  return (
+    <PageLoader>
+      <div className="app-shell" aria-hidden={callOpen || undefined}>
+        <div className="workspace">
+          <AppHeader view={view} onOverview={() => show("overview")} />
+          {view !== "overview" && <ProgressStepper view={view} />}
+          {page}
+        </div>
+      </div>
+      {callOpen && (
+        <CallOverlay
+          recipient={form.contact}
+          scenario={`${form.reference} · ${form.cargo}`}
+          onClose={() => setCallOpen(false)}
+          onReturnHome={() => {
+            restoreOverviewFocus.current = true;
+            show("overview");
+          }}
+          onViewReport={() => show("report")}
+        />
+      )}
+    </PageLoader>
+  );
 }
 
 export default App;
