@@ -11,7 +11,7 @@ export function AppHeader({
     <header className="app-header">
       <button className="brand" onClick={onOverview}>
         <span>TOMORROW IS CALLING</span>
-        <small>Operations Risk Network</small>
+        <small>Transport Operations Network</small>
       </button>
       <nav aria-label="Primary navigation">
         <button
@@ -20,11 +20,11 @@ export function AppHeader({
         >
           Overview
         </button>
-        <button disabled aria-label="Readiness Checks, upcoming">
-          Readiness Checks <small>Upcoming</small>
+        <button disabled aria-label="Transport Requests, upcoming">
+          Transport Requests <small>Upcoming</small>
         </button>
-        <button disabled aria-label="Reports, upcoming">
-          Reports <small>Upcoming</small>
+        <button disabled aria-label="Call Outcomes, upcoming">
+          Call Outcomes <small>Upcoming</small>
         </button>
       </nav>
       <span className="mock-flag">PROTOTYPE / MOCK DATA</span>

@@ -11,7 +11,7 @@ const TRANSITIONS: Partial<
   preparing: { next: "dialing", delay: 750 },
   dialing: { next: "ringing", delay: 1_100 },
   ringing: { next: "connected", delay: 1_450 },
-  connected: { next: "assessment", delay: 850 },
+  connected: { next: "conversation", delay: 850 },
   processing: { next: "complete", delay: 1_400 },
 };
 
@@ -33,7 +33,7 @@ export function useMockCall() {
   }, [state]);
 
   useEffect(() => {
-    if (state !== "connected" && state !== "assessment") return;
+    if (state !== "connected" && state !== "conversation") return;
     const interval = window.setInterval(
       () => setDuration((value) => value + 1),
       1_000,
@@ -41,7 +41,7 @@ export function useMockCall() {
     return () => window.clearInterval(interval);
   }, [state]);
 
-  const completeAssessment = () => setState("processing");
+  const completeConversation = () => setState("processing");
   const cancel = () => setState("cancelled");
   const retry = () => {
     setDuration(0);
@@ -51,14 +51,14 @@ export function useMockCall() {
   const record: PrototypeCallRecord = {
     status: state,
     completionReason:
-      state === "complete" ? "prototype-assessment-complete" : undefined,
+      state === "complete" ? "prototype-conversation-complete" : undefined,
   };
 
   return {
     state,
     duration,
     record,
-    completeAssessment,
+    completeConversation,
     cancel,
     retry,
     interrupt,

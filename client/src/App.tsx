@@ -3,18 +3,18 @@ import { AppHeader } from "./components/AppHeader/AppHeader";
 import { CallOverlay } from "./components/CallOverlay/CallOverlay";
 import { PageLoader } from "./components/PageLoader/PageLoader";
 import { ProgressStepper } from "./components/ProgressStepper/ProgressStepper";
-import { demoForm } from "./data/demoShipment";
+import { demoCallTask, demoForm } from "./data/demoShipment";
 import { NewReadinessCheckPage } from "./pages/NewReadinessCheckPage/NewReadinessCheckPage";
 import { OverviewPage } from "./pages/OverviewPage/OverviewPage";
 import { ReadinessReportPage } from "./pages/ReadinessReportPage/ReadinessReportPage";
 import { ReviewCallPage } from "./pages/ReviewCallPage/ReviewCallPage";
 import type { AppView } from "./types/navigation";
-import type { ReadinessCheckForm } from "./types/shipment";
+import type { TransportRequestForm } from "./types/transport";
 import "./App.css";
 
 function App() {
   const [view, setView] = useState<AppView>("overview");
-  const [form, setForm] = useState<ReadinessCheckForm>(demoForm);
+  const [form, setForm] = useState<TransportRequestForm>(demoForm);
   const [callOpen, setCallOpen] = useState(false);
   const restoreOverviewFocus = useRef(false);
   const show = (next: AppView) => {
@@ -75,8 +75,8 @@ function App() {
       </div>
       {callOpen && (
         <CallOverlay
-          recipient={form.contact}
-          scenario={`${form.reference} · ${form.cargo}`}
+          request={form}
+          task={{ ...demoCallTask, recipient: form.customer, requestReference: form.reference }}
           onClose={() => setCallOpen(false)}
           onReturnHome={() => {
             restoreOverviewFocus.current = true;

@@ -58,6 +58,9 @@
   border: 1px solid var(--line);
   padding: 1rem;
 }
+.form-page section { display: grid; gap: 0.75rem; }
+.alternate-fields { margin-top: 0.85rem; padding: 0.9rem; border-left: 2px solid var(--amber); background: rgb(241 184 79 / 0.06); }
+.alternate-warning { margin: 0; color: #f3deb0; font-size: 0.82rem; line-height: 1.45; }
 .form-page fieldset label {
   display: flex;
   align-items: center;

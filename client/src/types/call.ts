@@ -3,7 +3,7 @@ export type PrototypeCallStage =
   | "dialing"
   | "ringing"
   | "connected"
-  | "assessment"
+  | "conversation"
   | "processing"
   | "complete";
 export type PrototypeCallInterruption =

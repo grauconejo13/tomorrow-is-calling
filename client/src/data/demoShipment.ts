@@ -1,111 +1,28 @@
-import type { ReadinessReport } from "../types/report";
-import type {
-  Operation,
-  ReadinessCheckForm,
-  Shipment,
-} from "../types/shipment";
+import type { CallOutcome, CallTask, TransportOperation, TransportRequest } from "../types/transport";
+import type { ResolutionReport } from "../types/report";
 
-export const demoShipment: Shipment = {
-  reference: "SH-2048",
-  cargo: "Temperature-sensitive diagnostic equipment",
-  origin: "San Antonio Distribution Center",
-  destination: "Houston Medical Receiving Hub",
-  carrier: "Northline Express",
-  cutoffDate: "2026-07-28",
-  cutoffTime: "18:30",
-  contact: "Maya Chen",
-  phone: "(210) 555-0148",
-  priority: "Critical",
-  concerns: [
-    "Carrier pickup is not confirmed",
-    "Receiving contact has not acknowledged the delivery window",
-    "No backup carrier is assigned",
-  ],
+export const demoRequest: TransportRequest = {
+  reference: "AT-4821",
+  customer: { fullName: "Maya Chen", phone: "(213) 555-0148", email: "maya.chen@example.test" },
+  vehicle: { year: "2022", make: "Toyota", model: "Camry" },
+  pickup: { address: "1180 S Hope St, Los Angeles, CA", preferredWindow: "Tuesday 2–5 PM", presence: "alternate", alternateContact: { fullName: "Ana Chen", phone: "(213) 555-0182", relationship: "Sister", authorized: false } },
+  delivery: { address: "221 W Commerce St, San Antonio, TX", preferredWindow: "Thursday 10 AM–2 PM", presence: "customer", usePickupAlternate: false },
+  status: "follow_up_required",
+  specialInstructions: "Customer requests a text before driver arrival.",
+  consentToContact: true,
+  serviceAuthorizationComplete: false,
 };
 
-export const demoForm: ReadinessCheckForm = {
-  ...demoShipment,
-  concerns: demoShipment.concerns.join("\n"),
-  callTiming: "now",
-  consent: false,
-};
+export const demoForm = demoRequest;
+export const demoCallTask: CallTask = { id: "call-4821-follow-up", type: "customer-follow-up", requestReference: "AT-4821", recipient: demoRequest.customer, recipientRole: "customer", reason: "Authorization form incomplete", goal: "Confirm the customer received the secure form and determine whether they can complete it.", topics: ["Form received", "Customer questions", "Completion timing", "Alternate pickup contact", "Human assistance requested"] };
 
-export const demoOperations: Operation[] = [
-  {
-    id: demoShipment.reference,
-    reference: demoShipment.reference,
-    description: demoShipment.cargo,
-    route: "San Antonio → Houston",
-    status: "Review due",
-    queueState: "Ready for assessment",
-    isInteractive: true,
-    isSample: false,
-  },
-  {
-    id: "DL-1187",
-    reference: "DL-1187",
-    description: "Overnight retail replenishment",
-    route: "Austin → Dallas",
-    status: "Call scheduled",
-    queueState: "Scheduled",
-    isInteractive: false,
-    isSample: true,
-  },
-  {
-    id: "HO-7712",
-    reference: "HO-7712",
-    description: "Hospital supply handoff",
-    route: "Houston distribution hub → Medical receiving center",
-    status: "Assessment complete",
-    queueState: "Done",
-    isInteractive: false,
-    isSample: true,
-  },
-  {
-    id: "RT-3304",
-    reference: "RT-3304",
-    description: "Regional parts transfer",
-    route: "San Marcos → Corpus Christi",
-    status: "Awaiting details",
-    queueState: "Queued",
-    isInteractive: false,
-    isSample: true,
-  },
+export const demoOperations: TransportOperation[] = [
+  { id: "AT-4821", reference: "AT-4821", customer: "Maya Chen", vehicle: "2022 Toyota Camry", route: "Los Angeles, CA → San Antonio, TX", status: "follow_up_required", nextAction: "Customer follow-up call", isInteractive: true, isSample: false },
+  { id: "AT-5179", reference: "AT-5179", customer: "Darius Hill", vehicle: "2021 Ford Bronco", route: "Phoenix, AZ → Denver, CO", status: "searching_driver", nextAction: "Driver availability", isInteractive: false, isSample: true },
+  { id: "AT-3904", reference: "AT-3904", customer: "Sofia Ramirez", vehicle: "2023 Subaru Outback", route: "Austin, TX → Nashville, TN", status: "pickup_approaching", nextAction: "Pickup confirmation", isInteractive: false, isSample: true },
+  { id: "AT-2918", reference: "AT-2918", customer: "Elliot Brooks", vehicle: "2019 BMW X3", route: "Tampa, FL → Raleigh, NC", status: "completed", nextAction: "Delivery recorded", isInteractive: false, isSample: true },
 ];
 
-export const demoReport: ReadinessReport = {
-  readiness: 72,
-  preventionWindow: "2 hours 14 minutes",
-  risks: [
-    {
-      title: "Carrier pickup has not been confirmed.",
-      severity: "High",
-      impact:
-        "The shipment may miss the dispatch window if carrier confirmation is not received before escalation time.",
-    },
-    {
-      title: "Receiving contact has not acknowledged the delivery window.",
-      severity: "Moderate",
-    },
-    { title: "Backup carrier has not been assigned.", severity: "Moderate" },
-    {
-      title: "Final shipping document review has no confirmed owner.",
-      severity: "Moderate",
-    },
-  ],
-  actions: [
-    {
-      action: "Confirm pickup with Northline Express by 4:45 PM.",
-      owner: "Operations coordinator",
-    },
-    { action: "Assign and contact a backup carrier.", owner: "Dispatch" },
-    {
-      action: "Obtain receiving acknowledgment from the Houston hub.",
-      owner: "Maya Chen",
-    },
-    {
-      action: "Assign a final shipping-document reviewer.",
-      owner: "Operations lead",
-    },
-  ],
-};
+export const demoOutcome: CallOutcome = { callType: "customer-follow-up", reached: true, confirmedInformation: ["Customer reached: Yes", "Secure form received: Yes", "Expected completion: Before 4 PM", "Alternate pickup contact mentioned: Yes"], unresolvedItems: ["Alternate contact verified: No", "Pickup release authorization is pending"], nextAction: "Send the customer to the secure form and review authorization after completion.", humanEscalation: true, notes: "Customer says sister Ana may handle pickup and requests assistance if authorization cannot be completed." };
+
+export const demoReport: ResolutionReport = { outcome: { confirmed: demoOutcome.confirmedInformation.map((value) => ({ label: value.split(":")[0], value: value.split(":").slice(1).join(":").trim(), tone: "confirmed" })), unresolved: demoOutcome.unresolvedItems.map((value) => ({ label: value.split(":")[0], value: value.split(":").slice(1).join(":").trim(), tone: "unresolved" })), nextAction: demoOutcome.nextAction, humanEscalation: demoOutcome.humanEscalation, notes: demoOutcome.notes } };

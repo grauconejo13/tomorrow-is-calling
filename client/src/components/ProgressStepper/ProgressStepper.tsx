@@ -7,11 +7,11 @@ const steps: AppView[] = [
   "call-status",
   "report",
 ];
-const names = ["Overview", "Details", "Review", "Assessment", "Report"];
+const names = ["Queue", "Form", "Call brief", "Conversation", "Outcome"];
 export function ProgressStepper({ view }: { view: AppView }) {
   const current = steps.indexOf(view);
   return (
-    <ol className="stepper" aria-label="Readiness check progress">
+    <ol className="stepper" aria-label="Transport coordination progress">
       {names.map((name, index) => (
         <li key={name} className={index <= current ? "done" : ""}>
           <span>{index + 1}</span>
