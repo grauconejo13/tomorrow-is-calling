@@ -15,11 +15,21 @@ import "./App.css";
 function App() {
   const [view, setView] = useState<AppView>("overview");
   const [form, setForm] = useState<TransportRequestForm>(demoForm);
+  const [hasDraft, setHasDraft] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const restoreOverviewFocus = useRef(false);
   const show = (next: AppView) => {
     setCallOpen(false);
     setView(next);
+  };
+  const startRequest = () => {
+    setHasDraft(true);
+    show("new-check");
+  };
+  const discardDraft = () => {
+    setForm(demoForm);
+    setHasDraft(false);
+    restoreOverviewFocus.current = true;
   };
 
   useEffect(() => {
@@ -35,6 +45,7 @@ function App() {
       page = (
         <NewReadinessCheckPage
           initial={form}
+          onChange={setForm}
           onReview={(data) => {
             setForm(data);
             show("review");
@@ -55,13 +66,19 @@ function App() {
     case "report":
       page = (
         <ReadinessReportPage
-          onNew={() => show("new-check")}
+          onNew={startRequest}
           onOverview={() => show("overview")}
         />
       );
       break;
     default:
-      page = <OverviewPage onStart={() => show("new-check")} />;
+      page = (
+        <OverviewPage
+          hasDraft={hasDraft}
+          onStart={startRequest}
+          onDiscardDraft={discardDraft}
+        />
+      );
   }
 
   return (
