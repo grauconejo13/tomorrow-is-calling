@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { TransportRequestForm } from "../../types/transport";
 import "./NewReadinessCheckPage.css";
 
@@ -9,21 +9,50 @@ type Props = {
   onCancel: () => void;
 };
 
+type SectionShellProps = {
+  id: string;
+  number: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+};
+
+function SectionShell({ id, number, title, description, children }: SectionShellProps) {
+  return (
+    <section className="form-section" id={id} aria-labelledby={`${id}-heading`}>
+      <header className="form-section__header">
+        <span className="form-section__number" aria-hidden="true">{number}</span>
+        <div>
+          <p className="form-section__kicker">Step {number}</p>
+          <h2 id={`${id}-heading`}>{title}</h2>
+          <p>{description}</p>
+        </div>
+      </header>
+      <div className="form-section__body">{children}</div>
+    </section>
+  );
+}
+
 export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }: Props) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
   const consentRef = useRef<HTMLInputElement>(null);
+
   const update = <K extends keyof TransportRequestForm>(key: K, value: TransportRequestForm[K]) => {
     const next = { ...data, [key]: value };
     setData(next);
     onChange(next);
   };
+
   const customer = (key: "fullName" | "phone" | "email", value: string) =>
     update("customer", { ...data.customer, [key]: value });
+
   const vehicle = (key: "year" | "make" | "model", value: string) =>
     update("vehicle", { ...data.vehicle, [key]: value });
+
   const place = (kind: "pickup" | "delivery", key: string, value: unknown) =>
     update(kind, { ...data[kind], [key]: value } as TransportRequestForm[typeof kind]);
+
   const alternate = (kind: "pickup" | "delivery", key: string, value: string | boolean) => {
     const existing = data[kind].alternateContact ?? {
       fullName: "",
@@ -33,6 +62,7 @@ export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }:
     };
     place(kind, "alternateContact", { ...existing, [key]: value });
   };
+
   const required = [
     data.customer.fullName,
     data.customer.phone,
@@ -45,6 +75,7 @@ export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }:
     data.delivery.address,
     data.delivery.preferredWindow,
   ];
+
   function submit(event: FormEvent) {
     event.preventDefault();
     if (required.some((value) => !value) || !data.consentToContact) {
@@ -55,6 +86,7 @@ export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }:
     setError("");
     onReview(data);
   }
+
   const ContactFields = ({ kind }: { kind: "pickup" | "delivery" }) =>
     data[kind].presence === "alternate" ? (
       <div className="form-grid alternate-fields">
@@ -71,9 +103,12 @@ export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }:
           <input value={data[kind].alternateContact?.relationship ?? ""} onChange={(e) => alternate(kind, "relationship", e.target.value)} />
         </label>
         <label className="consent">
-          <input type="checkbox" checked={data[kind].alternateContact?.authorized ?? false} onChange={(e) => alternate(kind, "authorized", e.target.checked)} /> I confirm this person is authorized to {kind === "pickup" ? "release" : "receive"} the vehicle.
+          <input type="checkbox" checked={data[kind].alternateContact?.authorized ?? false} onChange={(e) => alternate(kind, "authorized", e.target.checked)} />
+          I confirm this person is authorized to {kind === "pickup" ? "release" : "receive"} the vehicle.
         </label>
-        {!data[kind].alternateContact?.authorized && <p className="alternate-warning">Alternate contact provided — authorization pending. This person will not be treated as authorized.</p>}
+        {!data[kind].alternateContact?.authorized && (
+          <p className="alternate-warning">Alternate contact provided — authorization pending. This person will not be treated as authorized.</p>
+        )}
       </div>
     ) : null;
 
@@ -83,27 +118,48 @@ export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }:
       <h1>Complete your transport details</h1>
       <p className="page-intro">Prototype data only. In production, this secure link is sent after a representative creates the request.</p>
       <p className="session-note">Your progress stays available while this tab is open. Closing the tab clears this demo draft.</p>
+
+      <nav className="form-progress" aria-label="Transport form sections">
+        <div className="form-progress__summary">
+          <span>Transport details</span>
+          <strong>5 sections</strong>
+        </div>
+        <ol>
+          <li><a href="#customer"><span>01</span>Customer</a></li>
+          <li><a href="#vehicle"><span>02</span>Vehicle</a></li>
+          <li><a href="#pickup"><span>03</span>Pickup</a></li>
+          <li><a href="#delivery"><span>04</span>Delivery</a></li>
+          <li><a href="#authorization"><span>05</span>Review</a></li>
+        </ol>
+      </nav>
+
       {error && <div className="form-error" role="alert">{error}</div>}
+
       <form onSubmit={submit} noValidate>
-        <section>
-          <p className="section-label">Customer</p>
+        <SectionShell id="customer" number="01" title="Customer" description="Who should we contact about this transport request?">
           <div className="form-grid">
             <label>Full name<input value={data.customer.fullName} onChange={(e) => customer("fullName", e.target.value)} required /></label>
             <label>Phone<input type="tel" value={data.customer.phone} onChange={(e) => customer("phone", e.target.value)} required /></label>
             <label>Email<input type="email" value={data.customer.email} onChange={(e) => customer("email", e.target.value)} required /></label>
           </div>
-        </section>
-        <section>
-          <p className="section-label">Vehicle</p>
+        </SectionShell>
+
+        <SectionShell id="vehicle" number="02" title="Vehicle" description="Tell us which vehicle is being transported.">
           <div className="form-grid">
             <label>Year<input inputMode="numeric" value={data.vehicle.year} onChange={(e) => vehicle("year", e.target.value)} required /></label>
             <label>Make<input value={data.vehicle.make} onChange={(e) => vehicle("make", e.target.value)} required /></label>
             <label>Model<input value={data.vehicle.model} onChange={(e) => vehicle("model", e.target.value)} required /></label>
           </div>
-        </section>
-        {(["pickup", "delivery"] as const).map((kind) => (
-          <section key={kind}>
-            <p className="section-label">{kind}</p>
+        </SectionShell>
+
+        {(["pickup", "delivery"] as const).map((kind, index) => (
+          <SectionShell
+            key={kind}
+            id={kind}
+            number={kind === "pickup" ? "03" : "04"}
+            title={kind === "pickup" ? "Pickup" : "Delivery"}
+            description={kind === "pickup" ? "Where and when should the vehicle be collected?" : "Where and when should the vehicle arrive?"}
+          >
             <div className="form-grid">
               <label>{kind} address<input value={data[kind].address} onChange={(e) => place(kind, "address", e.target.value)} required /></label>
               <label>Preferred {kind} window<input value={data[kind].preferredWindow} onChange={(e) => place(kind, "preferredWindow", e.target.value)} required /></label>
@@ -113,17 +169,30 @@ export function NewReadinessCheckPage({ initial, onChange, onReview, onCancel }:
               <label><input type="radio" checked={data[kind].presence === "customer"} onChange={() => place(kind, "presence", "customer")} /> I will be present</label>
               <label><input type="radio" checked={data[kind].presence === "alternate"} onChange={() => place(kind, "presence", "alternate")} /> Someone else will be present</label>
             </fieldset>
-            {kind === "delivery" && data.pickup.alternateContact && <label className="consent"><input type="checkbox" checked={data.delivery.usePickupAlternate} onChange={(e) => place("delivery", "usePickupAlternate", e.target.checked)} /> Use the pickup alternate contact for delivery</label>}
+            {kind === "delivery" && data.pickup.alternateContact && (
+              <label className="consent">
+                <input type="checkbox" checked={data.delivery.usePickupAlternate} onChange={(e) => place("delivery", "usePickupAlternate", e.target.checked)} />
+                Use the pickup alternate contact for delivery
+              </label>
+            )}
             <ContactFields kind={kind} />
-          </section>
+            {index === 0 ? <p className="section-hint">Next: delivery destination</p> : null}
+          </SectionShell>
         ))}
-        <section>
-          <p className="section-label">Service authorization</p>
+
+        <SectionShell id="authorization" number="05" title="Review & authorization" description="Add any final instructions and confirm we may contact you about this request.">
           <label>Special instructions<textarea rows={4} value={data.specialInstructions} onChange={(e) => update("specialInstructions", e.target.value)} /></label>
           <div className="prototype-notice">Secure payment and service authorization would be completed through a secure external channel in production. Do not enter a credit-card number here.</div>
-        </section>
-        <label className="consent"><input ref={consentRef} type="checkbox" checked={data.consentToContact} onChange={(e) => update("consentToContact", e.target.checked)} /> I consent to service-related calls and texts about this transport request.</label>
-        <div className="form-actions"><button className="button button--primary" type="submit">Review follow-up call</button><button className="button button--quiet" type="button" onClick={onCancel}>Cancel</button></div>
+          <label className="consent consent--final">
+            <input ref={consentRef} type="checkbox" checked={data.consentToContact} onChange={(e) => update("consentToContact", e.target.checked)} />
+            I consent to service-related calls and texts about this transport request.
+          </label>
+        </SectionShell>
+
+        <div className="form-actions">
+          <button className="button button--primary" type="submit">Review follow-up call</button>
+          <button className="button button--quiet" type="button" onClick={onCancel}>Cancel</button>
+        </div>
       </form>
     </main>
   );
