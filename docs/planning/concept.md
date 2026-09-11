@@ -38,3 +38,17 @@ The sci-fi presentation is the engagement layer, not the entire value propositio
 What practical task does the phone call accomplish that would be less effective through a normal form or chatbot?
 
 Leave this question visible until the first scenario is selected.
+
+## Selected MVP scenario
+
+The initial MVP is a time-critical shipment readiness check. Before a pickup cutoff, an operations coordinator can request a readiness review that will eventually use a phone agent to verify carrier confirmation, receiving availability, documentation ownership, and contingency coverage.
+
+The current interface is a frontend-only mock using fictional data. It is not shipment tracking, does not use live carrier data, and does not claim to predict the future. Future scenarios may support deliveries, launches, and operational handoffs.
+
+## Operations queue prototype
+
+The Overview demonstrates a small multi-operation queue. SH-2048 is the only interactive readiness-check flow. The other rows are non-interactive sample states for scheduled, queued, and completed operations; they do not represent multiple implemented call workflows. Future versions may support multiple active CALL-E readiness checks.
+
+## Prototype call monitor
+
+The active workflow includes a staged call monitor: preparing, dialing, ringing, connected, assessment, processing, and report ready. It represents application monitoring state, not browser phone audio. No real call, transcript, or recording is shown; the model is structured for a future CALL-E run status and structured result.

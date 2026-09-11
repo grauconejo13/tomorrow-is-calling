@@ -1,5 +1,9 @@
 # Scenario Options
 
+## Selected MVP — Time-critical shipment readiness check
+
+An operations coordinator reviews a critical shipment before its pickup cutoff. The eventual phone agent will verify readiness, identify exceptions, and return structured prevention actions. The current flow uses mock data only; CALL-E is not yet integrated.
+
 ## Option 1 — Emergency readiness rehearsal
 
 The future agent calls with a fictional local emergency scenario and asks what actions the user would take. The application returns a structured readiness summary.

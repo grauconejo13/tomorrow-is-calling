@@ -16,15 +16,15 @@ A temporal communications system connects the user with a future agent by phone.
 
 ## Practical use case
 
-The leading use case is a project pre-mortem: a future agent calls from a fictional failed launch to expose current risks.
+The selected MVP is a time-critical shipment readiness check. It helps an operations coordinator identify exceptions before a pickup cutoff, delivery, or handoff is missed.
 
 ## Current leading scenario
 
-Project pre-mortem call. This is a leading option, not a final scenario selection.
+Time-critical shipment readiness check. The interface currently uses fictional mock data; future versions may support deliveries, launches, and other operational handoffs.
 
 ## How CALL-E will be used
 
-A planned secure backend will use CALL-E at runtime to initiate a real outbound call, conduct the adaptive conversation, and return structured results. CALL-E is not integrated yet.
+A planned secure backend will use CALL-E at runtime to verify readiness, identify exceptions, and return structured prevention actions. CALL-E is not integrated yet.
 
 ## Planned user experience
 
@@ -32,7 +32,13 @@ The user reviews a scenario, gives consent, enters a phone number, receives one 
 
 ## Current project status
 
-React and TypeScript foundation in progress. The CALL-E integration, backend, phone form, final interface, and deployment have not been built yet.
+The frontend-only mock flow includes a multi-operation overview queue. SH-2048 is the only interactive prototype workflow; other rows illustrate scheduled, queued, and completed states. CALL-E integration, backend, real calls, live tracking, prediction, carrier integrations, and deployment have not been built yet.
+
+The SH-2048 prototype includes a call-monitoring lifecycle that represents application state only. It does not carry live phone audio, show a transcript or recording, or place a real call.
+
+This application is not a shipment-tracking platform and does not claim to predict the future.
+
+Future versions may support multiple active CALL-E readiness checks; this prototype does not.
 
 ## Technology stack
 
