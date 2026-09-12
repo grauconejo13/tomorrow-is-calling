@@ -33,6 +33,16 @@ function sanitizePhone(phone) {
   return String(phone ?? "").replace(/[^+\d]/g, "");
 }
 
+function validateRecipient(phone) {
+  if (!phone.startsWith("+") || phone.length < 8) {
+    return "Recipient phone must be supplied in E.164 format.";
+  }
+  if (ALLOWED_RECIPIENTS.size && !ALLOWED_RECIPIENTS.has(phone)) {
+    return "Recipient is not allowlisted for this demo.";
+  }
+  return null;
+}
+
 function buildTask(request) {
   const vehicle = `${request.vehicle?.year ?? ""} ${request.vehicle?.make ?? ""} ${request.vehicle?.model ?? ""}`.trim();
   return [
@@ -45,6 +55,32 @@ function buildTask(request) {
     `Do not request payment-card information or other sensitive financial data.`,
     `Be transparent that this is an AI-assisted service call.`,
   ].join(" ");
+}
+
+function buildTestTask(name) {
+  const recipientName = String(name ?? "Vanessa").trim() || "Vanessa";
+  return [
+    `This is a short connection test for Tomorrow Is Calling.`,
+    `When the recipient answers, say exactly: "Good evening, ${recipientName}. Tomorrow is calling."`,
+    `Then say: "This is a test call to confirm the connection is working."`,
+    `Do not ask for personal information, payment information, or any transport details.`,
+    `After the recipient acknowledges the test, politely end the call.`,
+  ].join(" ");
+}
+
+async function createUpstreamCall(body) {
+  const upstream = await fetch(`${CALL_E_BASE_URL}/v1/calls`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${CALL_E_API_KEY}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": randomUUID(),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payload = await upstream.json();
+  return { upstream, payload };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -65,47 +101,56 @@ const server = http.createServer(async (req, res) => {
     return json(res, 503, { error: "CALL_E_API_KEY is not configured on the server." });
   }
 
+  if (req.url === "/api/test-call" && req.method === "POST") {
+    try {
+      const { phone: rawPhone, name, consent } = await readJson(req);
+      const phone = sanitizePhone(rawPhone);
+      const recipientError = validateRecipient(phone);
+      if (recipientError) return json(res, recipientError.includes("allowlisted") ? 403 : 400, { error: recipientError });
+      if (!consent) {
+        return json(res, 400, { error: "Contact consent is required before placing a test call." });
+      }
+
+      const { upstream, payload } = await createUpstreamCall({
+        task: buildTestTask(name),
+        recipients: [{ phones: [phone] }],
+        metadata: { purpose: "temporary_connection_test" },
+      });
+
+      return json(res, upstream.status, payload);
+    } catch (error) {
+      return json(res, 500, { error: error instanceof Error ? error.message : "Unable to create test call." });
+    }
+  }
+
   if (req.url === "/api/calls" && req.method === "POST") {
     try {
       const { request } = await readJson(req);
       const phone = sanitizePhone(request?.customer?.phone);
-      if (!phone.startsWith("+") || phone.length < 8) {
-        return json(res, 400, { error: "Recipient phone must be supplied in E.164 format." });
-      }
-      if (ALLOWED_RECIPIENTS.size && !ALLOWED_RECIPIENTS.has(phone)) {
-        return json(res, 403, { error: "Recipient is not allowlisted for this demo." });
-      }
+      const recipientError = validateRecipient(phone);
+      if (recipientError) return json(res, recipientError.includes("allowlisted") ? 403 : 400, { error: recipientError });
       if (!request?.consentToContact) {
         return json(res, 400, { error: "Contact consent is required before placing a call." });
       }
 
-      const upstream = await fetch(`${CALL_E_BASE_URL}/v1/calls`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${CALL_E_API_KEY}`,
-          "Content-Type": "application/json",
-          "Idempotency-Key": randomUUID(),
-        },
-        body: JSON.stringify({
-          task: buildTask(request),
-          recipients: [{ phones: [phone] }],
-          recipient_result_schema: {
-            type: "object",
-            additionalProperties: false,
-            required: ["reached", "form_received", "completion_timing", "human_help_needed"],
-            properties: {
-              reached: { type: "boolean" },
-              form_received: { type: "string", enum: ["yes", "no", "unknown"] },
-              completion_timing: { type: "string" },
-              human_help_needed: { type: "boolean" },
-              blockers: { type: "array", items: { type: "string" } },
-            },
+      const { upstream, payload } = await createUpstreamCall({
+        task: buildTask(request),
+        recipients: [{ phones: [phone] }],
+        recipient_result_schema: {
+          type: "object",
+          additionalProperties: false,
+          required: ["reached", "form_received", "completion_timing", "human_help_needed"],
+          properties: {
+            reached: { type: "boolean" },
+            form_received: { type: "string", enum: ["yes", "no", "unknown"] },
+            completion_timing: { type: "string" },
+            human_help_needed: { type: "boolean" },
+            blockers: { type: "array", items: { type: "string" } },
           },
-          metadata: { request_reference: request.reference ?? "unknown" },
-        }),
+        },
+        metadata: { request_reference: request.reference ?? "unknown" },
       });
 
-      const payload = await upstream.json();
       return json(res, upstream.status, payload);
     } catch (error) {
       return json(res, 500, { error: error instanceof Error ? error.message : "Unable to create call." });
