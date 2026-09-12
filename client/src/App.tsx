@@ -8,11 +8,16 @@ import { NewReadinessCheckPage } from "./pages/NewReadinessCheckPage/NewReadines
 import { OverviewPage } from "./pages/OverviewPage/OverviewPage";
 import { ReadinessReportPage } from "./pages/ReadinessReportPage/ReadinessReportPage";
 import { ReviewCallPage } from "./pages/ReviewCallPage/ReviewCallPage";
+import { TemporaryCallTestPage } from "./pages/TemporaryCallTestPage";
 import type { AppView } from "./types/navigation";
 import type { TransportRequestForm } from "./types/transport";
 import "./App.css";
 
 function App() {
+  if (window.location.pathname === "/test-call") {
+    return <TemporaryCallTestPage />;
+  }
+
   const [view, setView] = useState<AppView>("overview");
   const [form, setForm] = useState<TransportRequestForm>(demoForm);
   const [callOpen, setCallOpen] = useState(false);
