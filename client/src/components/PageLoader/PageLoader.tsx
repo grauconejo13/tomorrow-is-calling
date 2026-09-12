@@ -96,6 +96,7 @@ export function PageLoader({ children }: PageLoaderProps) {
     }
 
     return () => {
+      started.current = false;
       window.removeEventListener("load", start);
       if (fallbackTimer !== undefined) window.clearTimeout(fallbackTimer);
       if (animationFrame !== undefined) window.cancelAnimationFrame(animationFrame);
