@@ -2,17 +2,28 @@ import { useRef, useState, type FormEvent } from "react";
 import type { TransportRequestForm } from "../../types/transport";
 import "./NewReadinessCheckPage.css";
 
-const E164_PATTERN = /^\+[1-9]\d{7,14}$/;
+const E164_PATTERN = /^\+1\d{10}$/;
+
+function getNationalUsDigits(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const hasDisplayedCountryCode = value.trim().startsWith("+1");
+  const national = hasDisplayedCountryCode
+    ? digits.slice(1)
+    : digits.length > 10 && digits.startsWith("1")
+      ? digits.slice(1)
+      : digits;
+  return national.slice(0, 10);
+}
 
 function normalizeUsPhone(value: string) {
-  const digits = value.replace(/\D/g, "");
-  const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
+  const national = getNationalUsDigits(value);
   return national.length ? `+1${national}` : "";
 }
 
 function formatUsPhone(value: string) {
-  const digits = value.replace(/\D/g, "");
-  const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
+  const national = value.startsWith("+1")
+    ? value.slice(2).replace(/\D/g, "").slice(0, 10)
+    : getNationalUsDigits(value);
   if (!national.length) return "";
   if (national.length <= 3) return `+1 (${national}`;
   if (national.length <= 6) return `+1 (${national.slice(0, 3)}) ${national.slice(3)}`;
