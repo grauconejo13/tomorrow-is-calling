@@ -44,16 +44,18 @@ function validateRecipient(phone) {
 }
 
 function buildTask(request) {
+  const customerName = request.customer?.fullName ?? "the customer";
   const vehicle = `${request.vehicle?.year ?? ""} ${request.vehicle?.make ?? ""} ${request.vehicle?.model ?? ""}`.trim();
   return [
-    `You are Tomorrow Is Calling, a concise vehicle-transport coordination agent.`,
-    `Call ${request.customer?.fullName ?? "the customer"} about transport request ${request.reference ?? "unknown"}.`,
+    `You are Tomorrow Is Calling, a concise AI-assisted vehicle-transport coordination agent.`,
+    `Call ${customerName} about transport request ${request.reference ?? "unknown"}.`,
+    `When the recipient answers, greet them by name and identify yourself as Tomorrow Is Calling before explaining that this is an AI-assisted service call.`,
     `Vehicle: ${vehicle || "not provided"}.`,
     `Pickup: ${request.pickup?.address ?? "not provided"}, preferred window ${request.pickup?.preferredWindow ?? "not provided"}.`,
     `Delivery: ${request.delivery?.address ?? "not provided"}, preferred window ${request.delivery?.preferredWindow ?? "not provided"}.`,
     `Goal: confirm the customer received the service/authorization information, identify questions or blockers, confirm expected completion timing, and determine whether human help is needed.`,
+    `Keep the call concise and conversational.`,
     `Do not request payment-card information or other sensitive financial data.`,
-    `Be transparent that this is an AI-assisted service call.`,
   ].join(" ");
 }
 
