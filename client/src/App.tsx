@@ -9,6 +9,7 @@ import { OverviewPage } from "./pages/OverviewPage/OverviewPage";
 import { ReadinessReportPage } from "./pages/ReadinessReportPage/ReadinessReportPage";
 import { ReviewCallPage } from "./pages/ReviewCallPage/ReviewCallPage";
 import { TemporaryCallTestPage } from "./pages/TemporaryCallTestPage";
+import type { CallEResponse } from "./services/callEApi";
 import type { AppView } from "./types/navigation";
 import type { TransportRequestForm } from "./types/transport";
 import "./App.css";
@@ -17,6 +18,7 @@ function MainApp() {
   const [view, setView] = useState<AppView>("overview");
   const [form, setForm] = useState<TransportRequestForm>(demoForm);
   const [callOpen, setCallOpen] = useState(false);
+  const [callResult, setCallResult] = useState<CallEResponse>();
   const restoreOverviewFocus = useRef(false);
   const show = (next: AppView) => {
     setCallOpen(false);
@@ -38,6 +40,7 @@ function MainApp() {
           initial={form}
           onReview={(data) => {
             setForm(data);
+            setCallResult(undefined);
             show("review");
           }}
           onCancel={() => show("overview")}
@@ -56,7 +59,12 @@ function MainApp() {
     case "report":
       page = (
         <ReadinessReportPage
-          onNew={() => show("new-check")}
+          request={form}
+          result={callResult}
+          onNew={() => {
+            setCallResult(undefined);
+            show("new-check");
+          }}
           onOverview={() => show("overview")}
         />
       );
@@ -83,7 +91,10 @@ function MainApp() {
             restoreOverviewFocus.current = true;
             show("overview");
           }}
-          onViewReport={() => show("report")}
+          onViewReport={(result) => {
+            setCallResult(result);
+            show("report");
+          }}
         />
       )}
     </PageLoader>
