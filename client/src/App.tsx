@@ -13,11 +13,7 @@ import type { AppView } from "./types/navigation";
 import type { TransportRequestForm } from "./types/transport";
 import "./App.css";
 
-function App() {
-  if (window.location.pathname === "/test-call") {
-    return <TemporaryCallTestPage />;
-  }
-
+function MainApp() {
   const [view, setView] = useState<AppView>("overview");
   const [form, setForm] = useState<TransportRequestForm>(demoForm);
   const [callOpen, setCallOpen] = useState(false);
@@ -92,6 +88,10 @@ function App() {
       )}
     </PageLoader>
   );
+}
+
+function App() {
+  return window.location.pathname === "/test-call" ? <TemporaryCallTestPage /> : <MainApp />;
 }
 
 export default App;
