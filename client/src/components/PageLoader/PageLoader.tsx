@@ -21,10 +21,14 @@ const LOADER_SESSION_KEY = "tomorrow-is-calling:loader-seen";
 type PageLoaderProps = { children: ReactNode };
 
 export function PageLoader({ children }: PageLoaderProps) {
-  const alreadySeen = typeof window !== "undefined" && sessionStorage.getItem(LOADER_SESSION_KEY) === "true";
-  const [phase, setPhase] = useState<"loading" | "exiting" | "complete">(alreadySeen ? "complete" : "loading");
-  const [progress, setProgress] = useState(alreadySeen ? 100 : 0);
-  const [stageIndex, setStageIndex] = useState(alreadySeen ? STAGES.length - 1 : 0);
+  const [skipLoader] = useState(
+    () => typeof window !== "undefined" && sessionStorage.getItem(LOADER_SESSION_KEY) === "true",
+  );
+  const [phase, setPhase] = useState<"loading" | "exiting" | "complete">(
+    skipLoader ? "complete" : "loading",
+  );
+  const [progress, setProgress] = useState(skipLoader ? 100 : 0);
+  const [stageIndex, setStageIndex] = useState(skipLoader ? STAGES.length - 1 : 0);
   const [clock, setClock] = useState(() => formatLocalTime());
   const started = useRef(false);
   const originalBodyOverflow = useRef("");
@@ -49,7 +53,7 @@ export function PageLoader({ children }: PageLoaderProps) {
   }, [phase]);
 
   useEffect(() => {
-    if (alreadySeen) return;
+    if (skipLoader) return;
 
     let fallbackTimer: number | undefined;
     let animationFrame: number | undefined;
@@ -68,9 +72,11 @@ export function PageLoader({ children }: PageLoaderProps) {
         const next = STAGES[currentStage + 1];
 
         if (!next) {
-          sessionStorage.setItem(LOADER_SESSION_KEY, "true");
           setPhase("exiting");
-          exitTimer = window.setTimeout(() => setPhase("complete"), EXIT_DURATION);
+          exitTimer = window.setTimeout(() => {
+            sessionStorage.setItem(LOADER_SESSION_KEY, "true");
+            setPhase("complete");
+          }, EXIT_DURATION);
           return;
         }
 
@@ -102,7 +108,7 @@ export function PageLoader({ children }: PageLoaderProps) {
       if (animationFrame !== undefined) window.cancelAnimationFrame(animationFrame);
       if (exitTimer !== undefined) window.clearTimeout(exitTimer);
     };
-  }, [alreadySeen]);
+  }, [skipLoader]);
 
   const stage = STAGES[stageIndex];
   const segmentsComplete = Math.round(progress / 10);
