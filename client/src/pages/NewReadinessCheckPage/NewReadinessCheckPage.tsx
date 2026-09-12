@@ -4,6 +4,21 @@ import "./NewReadinessCheckPage.css";
 
 const E164_PATTERN = /^\+[1-9]\d{7,14}$/;
 
+function normalizeUsPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
+  return national.length ? `+1${national}` : "";
+}
+
+function formatUsPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const national = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
+  if (!national.length) return "";
+  if (national.length <= 3) return `+1 (${national}`;
+  if (national.length <= 6) return `+1 (${national.slice(0, 3)}) ${national.slice(3)}`;
+  return `+1 (${national.slice(0, 3)}) ${national.slice(3, 6)}-${national.slice(6, 10)}`;
+}
+
 export function NewReadinessCheckPage({ initial, onReview, onCancel }: { initial: TransportRequestForm; onReview: (data: TransportRequestForm) => void; onCancel: () => void }) {
   const [data, setData] = useState(initial);
   const [error, setError] = useState("");
@@ -26,7 +41,7 @@ export function NewReadinessCheckPage({ initial, onReview, onCancel }: { initial
       return;
     }
     if (!E164_PATTERN.test(data.customer.phone.trim())) {
-      setError("Enter the customer phone in E.164 format, for example +12105551234.");
+      setError("Enter a valid 10-digit US phone number.");
       phoneRef.current?.focus();
       return;
     }
@@ -34,7 +49,7 @@ export function NewReadinessCheckPage({ initial, onReview, onCancel }: { initial
   }
   const ContactFields = ({ kind }: { kind: "pickup" | "delivery" }) => data[kind].presence === "alternate" ? <div className="form-grid alternate-fields"><label>Authorized {kind} contact name<input value={data[kind].alternateContact?.fullName ?? ""} onChange={(e) => alternate(kind, "fullName", e.target.value)} required /></label><label>Mobile phone<input type="tel" value={data[kind].alternateContact?.phone ?? ""} onChange={(e) => alternate(kind, "phone", e.target.value)} required /></label><label>Relationship / role (optional)<input value={data[kind].alternateContact?.relationship ?? ""} onChange={(e) => alternate(kind, "relationship", e.target.value)} /></label><label className="consent"><input type="checkbox" checked={data[kind].alternateContact?.authorized ?? false} onChange={(e) => alternate(kind, "authorized", e.target.checked)} /> I confirm this person is authorized to {kind === "pickup" ? "release" : "receive"} the vehicle.</label>{!data[kind].alternateContact?.authorized && <p className="alternate-warning">Alternate contact provided — authorization pending. This person will not be treated as authorized.</p>}</div> : null;
   return <main className="page form-page"><p className="eyebrow">Customer transport form</p><h1>Complete your transport details</h1><p className="page-intro">This flow can place a live CALL-E outbound call. For testing, replace the sample customer name and phone with the real recipient you intend to call.</p>{error && <div className="form-error" role="alert">{error}</div>}<form onSubmit={submit} noValidate>
-    <section><p className="section-label">Customer</p><div className="form-grid"><label>Full name<input value={data.customer.fullName} onChange={(e) => customer("fullName", e.target.value)} required /></label><label>Phone<input ref={phoneRef} type="tel" inputMode="tel" placeholder="+12105551234" value={data.customer.phone} onChange={(e) => customer("phone", e.target.value)} required /><small>Use E.164 format: +1 followed by the 10-digit US number.</small></label><label>Email<input type="email" value={data.customer.email} onChange={(e) => customer("email", e.target.value)} required /></label></div></section>
+    <section><p className="section-label">Customer</p><div className="form-grid"><label>Full name<input value={data.customer.fullName} onChange={(e) => customer("fullName", e.target.value)} required /></label><label>Phone<input ref={phoneRef} type="tel" inputMode="tel" autoComplete="tel" placeholder="+1 (210) 555-1234" value={formatUsPhone(data.customer.phone)} onChange={(e) => customer("phone", normalizeUsPhone(e.target.value))} required /><small>Enter a 10-digit US number. It is stored as E.164 for CALL-E.</small></label><label>Email<input type="email" value={data.customer.email} onChange={(e) => customer("email", e.target.value)} required /></label></div></section>
     <section><p className="section-label">Vehicle</p><div className="form-grid"><label>Year<input inputMode="numeric" value={data.vehicle.year} onChange={(e) => vehicle("year", e.target.value)} required /></label><label>Make<input value={data.vehicle.make} onChange={(e) => vehicle("make", e.target.value)} required /></label><label>Model<input value={data.vehicle.model} onChange={(e) => vehicle("model", e.target.value)} required /></label></div></section>
     {(["pickup", "delivery"] as const).map((kind) => <section key={kind}><p className="section-label">{kind}</p><div className="form-grid"><label>{kind} address<input value={data[kind].address} onChange={(e) => place(kind, "address", e.target.value)} required /></label><label>Preferred {kind} window<input value={data[kind].preferredWindow} onChange={(e) => place(kind, "preferredWindow", e.target.value)} required /></label></div><fieldset><legend>Who will be present?</legend><label><input type="radio" checked={data[kind].presence === "customer"} onChange={() => place(kind, "presence", "customer")} /> I will be present</label><label><input type="radio" checked={data[kind].presence === "alternate"} onChange={() => place(kind, "presence", "alternate")} /> Someone else will be present</label></fieldset>{kind === "delivery" && data.pickup.alternateContact && <label className="consent"><input type="checkbox" checked={data.delivery.usePickupAlternate} onChange={(e) => place("delivery", "usePickupAlternate", e.target.checked)} /> Use the pickup alternate contact for delivery</label>}<ContactFields kind={kind} /></section>)}
     <section><p className="section-label">Service authorization</p><label>Special instructions<textarea rows={4} value={data.specialInstructions} onChange={(e) => update("specialInstructions", e.target.value)} /></label><div className="prototype-notice">Do not enter payment-card information here. Sensitive payment or authorization details should use a secure external channel.</div></section>
