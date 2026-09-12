@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { createTestCall } from "../services/callEApi";
 
 export function TemporaryCallTestPage() {
