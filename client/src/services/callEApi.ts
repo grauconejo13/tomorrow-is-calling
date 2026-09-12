@@ -33,6 +33,15 @@ export async function createCall(request: TransportRequest): Promise<CallERespon
   return parse(response);
 }
 
+export async function createTestCall(phone: string, name: string): Promise<CallEResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/test-call`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone, name, consent: true }),
+  });
+  return parse(response);
+}
+
 export async function getCall(callId: string): Promise<CallEResponse> {
   const response = await fetch(`${API_BASE_URL}/api/calls/${encodeURIComponent(callId)}`);
   return parse(response);
