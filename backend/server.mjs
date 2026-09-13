@@ -46,15 +46,29 @@ function validateRecipient(phone) {
 function buildTask(request) {
   const customerName = request.customer?.fullName ?? "the customer";
   const vehicle = `${request.vehicle?.year ?? ""} ${request.vehicle?.make ?? ""} ${request.vehicle?.model ?? ""}`.trim();
+  const pickupAddress = request.pickup?.address ?? "not provided";
+  const pickupWindow = request.pickup?.preferredWindow ?? "not provided";
+  const deliveryAddress = request.delivery?.address ?? "not provided";
+  const deliveryWindow = request.delivery?.preferredWindow ?? "not provided";
+  const specialInstructions = request.specialInstructions?.trim() || "none provided";
+
   return [
     `You are Tomorrow Is Calling, a concise AI-assisted vehicle-transport coordination agent.`,
     `Call ${customerName} about transport request ${request.reference ?? "unknown"}.`,
-    `When the recipient answers, greet them by name and identify yourself as Tomorrow Is Calling before explaining that this is an AI-assisted service call.`,
+    `First ask whether you are speaking with ${customerName}. Do not disclose transport details until the recipient confirms they are ${customerName}.`,
+    `If the recipient is not ${customerName}, do not disclose vehicle, pickup, delivery, or scheduling details. Ask whether ${customerName} is available. If they are unavailable, politely end the call and mark the request for human follow-up.`,
+    `After identity is confirmed, identify yourself as Tomorrow Is Calling and explain that this is an AI-assisted service call regarding their vehicle transport request.`,
     `Vehicle: ${vehicle || "not provided"}.`,
-    `Pickup: ${request.pickup?.address ?? "not provided"}, preferred window ${request.pickup?.preferredWindow ?? "not provided"}.`,
-    `Delivery: ${request.delivery?.address ?? "not provided"}, preferred window ${request.delivery?.preferredWindow ?? "not provided"}.`,
-    `Goal: confirm the customer received the service/authorization information, identify questions or blockers, confirm expected completion timing, and determine whether human help is needed.`,
-    `Keep the call concise and conversational.`,
+    `Pickup: ${pickupAddress}, preferred transport window ${pickupWindow}.`,
+    `Delivery: ${deliveryAddress}, preferred delivery window ${deliveryWindow}.`,
+    `Special instructions already on the request: ${specialInstructions}.`,
+    `Summarize the transport details conversationally. Describe pickup and delivery timing only as the scheduled or preferred windows supplied in the request; never invent or guarantee a date, time, route, driver, or ETA.`,
+    `Explain that the driver or transport team will contact the customer again as the driver gets closer to the pickup location.`,
+    `Ask whether the customer has any questions, special instructions, access details, alternate-contact information, or anything the driver should know before pickup.`,
+    `Respond conversationally using only the information in this request and the customer's statements during the call. Do not invent pricing, insurance terms, cancellation policies, driver identity, ETA, or other business facts that were not supplied.`,
+    `If the customer asks something you cannot answer from the supplied request, explain that you will flag it for a human transport coordinator.`,
+    `Before ending, briefly confirm any new instructions or unresolved questions you heard.`,
+    `Keep the call concise and professional.`,
     `Do not request payment-card information or other sensitive financial data.`,
   ].join(" ");
 }
@@ -141,13 +155,17 @@ const server = http.createServer(async (req, res) => {
         recipient_result_schema: {
           type: "object",
           additionalProperties: false,
-          required: ["reached", "form_received", "completion_timing", "human_help_needed"],
+          required: ["reached", "identity_confirmed", "transport_details_confirmed", "human_help_needed", "summary"],
           properties: {
             reached: { type: "boolean" },
-            form_received: { type: "string", enum: ["yes", "no", "unknown"] },
+            identity_confirmed: { type: "boolean" },
+            transport_details_confirmed: { type: "boolean" },
             completion_timing: { type: "string" },
             human_help_needed: { type: "boolean" },
+            customer_questions: { type: "array", items: { type: "string" } },
+            special_instructions: { type: "array", items: { type: "string" } },
             blockers: { type: "array", items: { type: "string" } },
+            summary: { type: "string" },
           },
         },
         metadata: { request_reference: request.reference ?? "unknown" },
