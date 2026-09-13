@@ -1,5 +1,6 @@
 import type { AppView } from "../../types/navigation";
 import "./AppHeader.css";
+
 export function AppHeader({
   view,
   onOverview,
@@ -18,16 +19,16 @@ export function AppHeader({
           className={view === "overview" ? "active" : ""}
           onClick={onOverview}
         >
-          Overview
+          Request queue
         </button>
-        <button disabled aria-label="Transport Requests, upcoming">
-          Transport Requests <small>Upcoming</small>
+        <button disabled aria-label="Driver Dispatch, upcoming">
+          Driver Dispatch <small>Upcoming</small>
         </button>
         <button disabled aria-label="Call Outcomes, upcoming">
           Call Outcomes <small>Upcoming</small>
         </button>
       </nav>
-      <span className="mock-flag">PROTOTYPE / MOCK DATA</span>
+      <span className="mock-flag">STAFF CONSOLE · LIVE CALL-E</span>
     </header>
   );
 }
