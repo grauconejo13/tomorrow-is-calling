@@ -23,10 +23,33 @@ export type CallEResponse = {
   };
 };
 
+function readableError(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value;
+  if (!value || typeof value !== "object") return undefined;
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => readableError(item))
+      .filter((item): item is string => Boolean(item));
+    return parts.length ? parts.join("; ") : JSON.stringify(value);
+  }
+
+  const record = value as Record<string, unknown>;
+  const nested = readableError(record.message)
+    ?? readableError(record.msg)
+    ?? readableError(record.detail)
+    ?? readableError(record.error);
+  return nested ?? JSON.stringify(value);
+}
+
 async function parse(response: Response): Promise<CallEResponse> {
-  const payload = await response.json();
+  const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload?.error ?? payload?.detail ?? payload?.failure_message ?? "CALL-E request failed.");
+    const message = readableError(payload?.error)
+      ?? readableError(payload?.detail)
+      ?? readableError(payload?.failure_message)
+      ?? `CALL-E request failed with HTTP ${response.status}.`;
+    throw new Error(message);
   }
   return payload;
 }
