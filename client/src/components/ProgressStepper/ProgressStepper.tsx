@@ -1,13 +1,9 @@
 import type { AppView } from "../../types/navigation";
 import "./ProgressStepper.css";
-const steps: AppView[] = [
-  "overview",
-  "new-check",
-  "review",
-  "call-status",
-  "report",
-];
-const names = ["Queue", "Form", "Call brief", "Conversation", "Outcome"];
+
+const steps: AppView[] = ["overview", "review", "call-status", "report"];
+const names = ["Queue", "Call brief", "Conversation", "Outcome"];
+
 export function ProgressStepper({ view }: { view: AppView }) {
   const current = steps.indexOf(view);
   return (

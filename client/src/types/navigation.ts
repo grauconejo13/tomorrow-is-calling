@@ -1,2 +1,8 @@
 export type AppView =
-  "overview" | "new-check" | "review" | "call-status" | "report";
+  | "landing"
+  | "request"
+  | "submitted"
+  | "overview"
+  | "review"
+  | "call-status"
+  | "report";
