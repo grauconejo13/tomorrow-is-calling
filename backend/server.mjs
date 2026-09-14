@@ -1,5 +1,6 @@
 import http from "node:http";
 import { randomUUID } from "node:crypto";
+import { createDemoRateLimiter } from "./demoRateLimit.mjs";
 
 const PORT = Number(process.env.PORT ?? 8787);
 const CALL_E_API_KEY = process.env.CALL_E_API_KEY;
@@ -11,6 +12,7 @@ const ALLOWED_RECIPIENTS = new Set(
     .map((value) => value.trim())
     .filter(Boolean),
 );
+const demoRateLimiter = createDemoRateLimiter(process.env);
 
 function json(res, status, body) {
   res.writeHead(status, {
@@ -38,7 +40,7 @@ function validateRecipient(phone) {
     return "Recipient phone must be supplied in E.164 format.";
   }
   if (ALLOWED_RECIPIENTS.size && !ALLOWED_RECIPIENTS.has(phone)) {
-    return "Recipient is not allowlisted for this demo.";
+    return "Recipient is not allowlisted for this deployment.";
   }
   return null;
 }
@@ -112,7 +114,7 @@ function buildTask(request) {
 }
 
 function buildTestTask(name) {
-  const recipientName = String(name ?? "Vanessa").trim() || "Vanessa";
+  const recipientName = String(name ?? "there").trim() || "there";
   return [
     `This is a short connection test for Tomorrow Is Calling.`,
     `When the recipient answers, say exactly: "Good evening, ${recipientName}. Tomorrow is calling."`,
@@ -137,6 +139,47 @@ async function createUpstreamCall(body) {
   return { upstream, payload };
 }
 
+async function reserveDemoCall(phone, res) {
+  try {
+    const reservation = await demoRateLimiter.reserve(phone);
+    if (reservation.allowed) return reservation;
+
+    const message = reservation.scope === "global"
+      ? `The public demo has reached its ${reservation.limit}-call limit for this window. Please try again later.`
+      : `Demo limit reached. Each phone number can receive up to ${reservation.limit} calls per 24 hours.`;
+
+    json(res, 429, {
+      error: message,
+      demo_limit: {
+        scope: reservation.scope,
+        limit: reservation.limit,
+        retry_after_seconds: reservation.retryAfterSeconds,
+      },
+    });
+    return null;
+  } catch {
+    json(res, 503, {
+      error: "The public demo rate-limit service is temporarily unavailable. No call was placed.",
+    });
+    return null;
+  }
+}
+
+function attachDemoUsage(payload, reservation) {
+  if (!reservation?.enabled || !payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return payload;
+  }
+
+  return {
+    ...payload,
+    demo_usage: {
+      phone_remaining: reservation.phoneRemaining,
+      global_remaining: reservation.globalRemaining,
+      window_seconds: demoRateLimiter.windowSeconds,
+    },
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
@@ -148,7 +191,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.url === "/health" && req.method === "GET") {
-    return json(res, 200, { status: "ok", service: "tomorrow-is-calling-backend" });
+    return json(res, 200, {
+      status: "ok",
+      service: "tomorrow-is-calling-backend",
+      demo_public_mode: demoRateLimiter.enabled,
+      demo_rate_limit_store: demoRateLimiter.store,
+      demo_call_limit_per_phone: demoRateLimiter.perPhoneLimit,
+      demo_global_call_limit: demoRateLimiter.globalLimit,
+    });
   }
 
   if (!CALL_E_API_KEY) {
@@ -156,6 +206,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.url === "/api/test-call" && req.method === "POST") {
+    let reservation;
     try {
       const { phone: rawPhone, name, consent } = await readJson(req);
       const phone = sanitizePhone(rawPhone);
@@ -165,19 +216,25 @@ const server = http.createServer(async (req, res) => {
         return json(res, 400, { error: "Contact consent is required before placing a test call." });
       }
 
+      reservation = await reserveDemoCall(phone, res);
+      if (!reservation) return;
+
       const { upstream, payload } = await createUpstreamCall({
         task: buildTestTask(name),
         recipients: [{ phones: [phone] }],
         metadata: { purpose: "temporary_connection_test" },
       });
 
-      return json(res, upstream.status, payload);
+      if (!upstream.ok) await reservation.release();
+      return json(res, upstream.status, attachDemoUsage(payload, reservation));
     } catch (error) {
+      if (reservation?.release) await reservation.release();
       return json(res, 500, { error: error instanceof Error ? error.message : "Unable to create test call." });
     }
   }
 
   if (req.url === "/api/calls" && req.method === "POST") {
+    let reservation;
     try {
       const { request } = await readJson(req);
       const phone = sanitizePhone(request?.customer?.phone);
@@ -191,6 +248,9 @@ const server = http.createServer(async (req, res) => {
       if (quoteError) {
         return json(res, 400, { error: quoteError });
       }
+
+      reservation = await reserveDemoCall(phone, res);
+      if (!reservation) return;
 
       const { upstream, payload } = await createUpstreamCall({
         task: buildTask(request),
@@ -249,8 +309,10 @@ const server = http.createServer(async (req, res) => {
         },
       });
 
-      return json(res, upstream.status, payload);
+      if (!upstream.ok) await reservation.release();
+      return json(res, upstream.status, attachDemoUsage(payload, reservation));
     } catch (error) {
+      if (reservation?.release) await reservation.release();
       return json(res, 500, { error: error instanceof Error ? error.message : "Unable to create call." });
     }
   }
