@@ -14,6 +14,11 @@ export type CallEResponse = {
     summary?: string | null;
   }>;
   failure_message?: string | null;
+  demo_usage?: {
+    phone_remaining?: number;
+    global_remaining?: number;
+    window_seconds?: number;
+  };
 };
 
 async function parse(response: Response): Promise<CallEResponse> {
@@ -33,11 +38,11 @@ export async function createCall(request: TransportRequest): Promise<CallERespon
   return parse(response);
 }
 
-export async function createTestCall(phone: string, name: string): Promise<CallEResponse> {
+export async function createTestCall(phone: string, name: string, consent: boolean): Promise<CallEResponse> {
   const response = await fetch(`${API_BASE_URL}/api/test-call`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, name, consent: true }),
+    body: JSON.stringify({ phone, name, consent }),
   });
   return parse(response);
 }
