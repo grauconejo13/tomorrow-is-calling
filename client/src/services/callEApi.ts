@@ -1,6 +1,8 @@
 import type { TransportRequest } from "../types/transport";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
+// Production uses the same Vercel deployment for frontend + API routes.
+// Set VITE_API_BASE_URL only when pointing the client at a separate backend (for example local development).
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export type CallEStatus = "queued" | "in_progress" | "completed" | "failed" | "canceled";
 
@@ -48,6 +50,6 @@ export async function createTestCall(phone: string, name: string, consent: boole
 }
 
 export async function getCall(callId: string): Promise<CallEResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/calls/${encodeURIComponent(callId)}`);
+  const response = await fetch(`${API_BASE_URL}/api/call-status?callId=${encodeURIComponent(callId)}`);
   return parse(response);
 }
