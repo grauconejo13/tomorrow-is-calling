@@ -15,6 +15,14 @@ import {
   validateRecipient,
 } from "./_lib/callE.mjs";
 
+const safeRecipientResultSchema = {
+  ...recipientResultSchema,
+  required: recipientResultSchema.required.filter((field) => field !== "summary"),
+  properties: Object.fromEntries(
+    Object.entries(recipientResultSchema.properties).filter(([field]) => field !== "summary"),
+  ),
+};
+
 export default async function handler(req, res) {
   allowCors(req, res);
   if (handleOptions(req, res)) return;
@@ -42,7 +50,7 @@ export default async function handler(req, res) {
     const { upstream, payload } = await createUpstreamCall({
       task: buildTask(request),
       recipients: [{ phones: [phone] }],
-      recipient_result_schema: recipientResultSchema,
+      recipient_result_schema: safeRecipientResultSchema,
       metadata: {
         purpose: "confirmed_quote_decision",
         request_reference: request.reference ?? "unknown",
