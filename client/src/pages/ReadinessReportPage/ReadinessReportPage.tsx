@@ -10,15 +10,32 @@ type Props = {
   onOverview: () => void;
 };
 
+type QuoteDecision =
+  | "accepted"
+  | "declined"
+  | "thinking"
+  | "email_requested"
+  | "price_objection"
+  | "unclear";
+
+type NextAction =
+  | "SEND_PAYMENT_LINK"
+  | "CLOSE_OR_FOLLOW_UP"
+  | "EMAIL_QUOTE"
+  | "WAIT_FOR_CUSTOMER"
+  | "HUMAN_REVIEW"
+  | "RETRY_OR_HUMAN_REVIEW";
+
 type StructuredOutcome = {
   reached?: boolean;
   identity_confirmed?: boolean;
-  transport_details_confirmed?: boolean;
-  completion_timing?: string;
+  quote_presented?: boolean;
+  quote_decision?: QuoteDecision;
+  next_action?: NextAction;
   human_help_needed?: boolean;
   customer_questions?: string[];
-  special_instructions?: string[];
-  blockers?: string[];
+  price_objection_reason?: string;
+  competitor_price_mentioned?: string;
   summary?: string;
 };
 
@@ -33,28 +50,91 @@ function cleanList(value?: string[]) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string" && item.trim()) : [];
 }
 
+function money(value?: number) {
+  if (!Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value as number);
+}
+
+function decisionLabel(decision?: QuoteDecision) {
+  switch (decision) {
+    case "accepted":
+      return "Accepted";
+    case "declined":
+      return "Declined";
+    case "thinking":
+      return "Thinking it over";
+    case "email_requested":
+      return "Email requested";
+    case "price_objection":
+      return "Price objection";
+    case "unclear":
+      return "Unclear";
+    default:
+      return "—";
+  }
+}
+
+function nextActionLabel(action?: NextAction) {
+  switch (action) {
+    case "SEND_PAYMENT_LINK":
+      return "Send the secure payment link by email or text. Payment credentials are entered only on the hosted checkout page.";
+    case "CLOSE_OR_FOLLOW_UP":
+      return "Close the quote or schedule an approved follow-up without pressuring the customer.";
+    case "EMAIL_QUOTE":
+      return "Email the quote to the customer and keep the request pending.";
+    case "WAIT_FOR_CUSTOMER":
+      return "Leave the quote pending while the customer considers it.";
+    case "HUMAN_REVIEW":
+      return "Route the pricing concern to a human coordinator for review. CALL-E must not invent or authorize a discount.";
+    case "RETRY_OR_HUMAN_REVIEW":
+      return "Review the unclear outcome and either retry the quote conversation or route it to a human coordinator.";
+    default:
+      return "Review the call outcome before continuing the transport workflow.";
+  }
+}
+
 export function ReadinessReportPage({ request, result, onNew, onOverview }: Props) {
   const outcome = getStructuredOutcome(result);
+  const quote = request.quote;
   const reached = outcome?.reached;
   const identityConfirmed = outcome?.identity_confirmed;
-  const detailsConfirmed = outcome?.transport_details_confirmed;
-  const completionTiming = outcome?.completion_timing?.trim();
+  const quotePresented = outcome?.quote_presented;
+  const decision = outcome?.quote_decision;
+  const nextAction = outcome?.next_action;
   const humanHelp = outcome?.human_help_needed;
   const questions = cleanList(outcome?.customer_questions);
-  const instructions = cleanList(outcome?.special_instructions);
-  const blockers = cleanList(outcome?.blockers);
+  const objectionReason = outcome?.price_objection_reason?.trim();
+  const competitorPrice = outcome?.competitor_price_mentioned?.trim();
   const summary = outcome?.summary?.trim() || result?.summary?.trim();
   const hasStructuredOutcome = Boolean(outcome);
+  const accepted = decision === "accepted";
+  const needsHumanReview = humanHelp || decision === "price_objection" || decision === "unclear";
 
-  const statusTone = humanHelp || blockers.length ? "attention" : "ready";
-  const statusLabel = humanHelp || blockers.length ? "Follow-up required" : "Call complete";
+  const statusTone = accepted ? "ready" : needsHumanReview ? "attention" : decision === "declined" ? "critical" : "attention";
+  const statusLabel = accepted
+    ? "Quote accepted"
+    : decision === "declined"
+      ? "Quote declined"
+      : decision === "thinking"
+        ? "Customer deciding"
+        : decision === "email_requested"
+          ? "Quote requested"
+          : decision === "price_objection"
+            ? "Price review needed"
+            : decision === "unclear"
+              ? "Review required"
+              : "Call complete";
 
   return (
     <main className="page report">
-      <p className="eyebrow">Customer follow-up outcome</p>
+      <p className="eyebrow">Customer quote call outcome</p>
       <div className="report__title">
         <div>
-          <h1>Call outcome <span>{request.reference}</span></h1>
+          <h1>Quote decision <span>{request.reference}</span></h1>
           <p>{request.customer.fullName} · {request.vehicle.year} {request.vehicle.make} {request.vehicle.model}</p>
         </div>
         <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
@@ -62,9 +142,19 @@ export function ReadinessReportPage({ request, result, onNew, onOverview }: Prop
 
       <section className="report-metrics">
         <div><b>{reached === undefined ? "—" : reached ? "Yes" : "No"}</b><span>Customer reached</span></div>
-        <div><b>{identityConfirmed === undefined ? "—" : identityConfirmed ? "Yes" : "No"}</b><span>Identity confirmed</span></div>
-        <div><b>{detailsConfirmed === undefined ? "—" : detailsConfirmed ? "Yes" : "No"}</b><span>Transport details confirmed</span></div>
-        <div><b>{humanHelp === undefined ? "—" : humanHelp ? "Yes" : "No"}</b><span>Human follow-up</span></div>
+        <div><b>{quotePresented === undefined ? "—" : quotePresented ? "Yes" : "No"}</b><span>Quote presented</span></div>
+        <div><b>{decisionLabel(decision)}</b><span>Customer decision</span></div>
+        <div><b>{money(quote?.confirmedTotal)}</b><span>Confirmed price</span></div>
+      </section>
+
+      <section className="projection">
+        <p className="section-label">Quote details</p>
+        <div>
+          <p><b>Earlier estimate:</b> {money(quote?.estimateLow)}–{money(quote?.estimateHigh)}</p>
+          <p><b>Confirmed transport price:</b> {money(quote?.confirmedTotal)}</p>
+          <p><b>Initial payment:</b> {money(quote?.initialPayment)}</p>
+          <p><b>Remaining at delivery:</b> {money(quote?.remainingBalance)}</p>
+        </div>
       </section>
 
       {hasStructuredOutcome ? (
@@ -72,19 +162,60 @@ export function ReadinessReportPage({ request, result, onNew, onOverview }: Prop
           <section className="projection">
             <p className="section-label">Conversation summary</p>
             <div>
-              <p>{summary || "CALL-E completed the call but did not return a narrative summary."}</p>
-              {completionTiming && <p><b>Timing discussed:</b> {completionTiming}</p>}
+              <p>{summary || "CALL-E completed the quote call but did not return a narrative summary."}</p>
+              <p><b>Identity confirmed:</b> {identityConfirmed === undefined ? "Unavailable" : identityConfirmed ? "Yes" : "No"}</p>
+              <p><b>Human escalation:</b> {humanHelp ? "Required" : "Not required"}</p>
             </div>
           </section>
 
           <section>
-            <p className="section-label">Confirmed information</p>
+            <p className="section-label">Decision result</p>
             <div className="risk-list">
-              <article className="risk-item"><div><StatusBadge tone={reached ? "ready" : "critical"}>{reached ? "Confirmed" : "Not reached"}</StatusBadge><h3>Customer reached</h3></div><p>{reached ? "Yes" : "No"}</p></article>
-              <article className="risk-item"><div><StatusBadge tone={identityConfirmed ? "ready" : "critical"}>{identityConfirmed ? "Confirmed" : "Unconfirmed"}</StatusBadge><h3>Identity confirmed</h3></div><p>{identityConfirmed ? "Yes" : "No"}</p></article>
-              <article className="risk-item"><div><StatusBadge tone={detailsConfirmed ? "ready" : "attention"}>{detailsConfirmed ? "Confirmed" : "Needs review"}</StatusBadge><h3>Transport details</h3></div><p>{detailsConfirmed ? "Customer confirmed the transport details discussed on the call." : "Transport details were not fully confirmed."}</p></article>
+              <article className="risk-item">
+                <div>
+                  <StatusBadge tone={quotePresented ? "ready" : "critical"}>{quotePresented ? "Presented" : "Not confirmed"}</StatusBadge>
+                  <h3>Confirmed quote</h3>
+                </div>
+                <p>{quotePresented ? `CALL-E presented the confirmed ${money(quote?.confirmedTotal)} transport price.` : "The structured result did not confirm that the quote was presented."}</p>
+              </article>
+
+              <article className="risk-item">
+                <div>
+                  <StatusBadge tone={accepted ? "ready" : needsHumanReview ? "attention" : decision === "declined" ? "critical" : "attention"}>{decisionLabel(decision)}</StatusBadge>
+                  <h3>Customer decision</h3>
+                </div>
+                <p>{accepted ? "The customer explicitly accepted the confirmed quote." : `Recorded outcome: ${decisionLabel(decision)}.`}</p>
+              </article>
+
+              <article className="risk-item">
+                <div>
+                  <StatusBadge tone={accepted ? "ready" : "attention"}>{accepted ? "Eligible" : "Not authorized"}</StatusBadge>
+                  <h3>Secure checkout</h3>
+                </div>
+                <p>{accepted ? "The workflow may now send a secure hosted payment link. CALL-E does not collect card or bank credentials." : "A payment link must not be sent unless the customer explicitly accepts the quote."}</p>
+              </article>
             </div>
           </section>
+
+          {(objectionReason || competitorPrice) && (
+            <section>
+              <p className="section-label">Pricing concern</p>
+              <div className="risk-list">
+                {objectionReason && (
+                  <article className="risk-item">
+                    <div><StatusBadge tone="attention">Review</StatusBadge><h3>Price objection</h3></div>
+                    <p>{objectionReason}</p>
+                  </article>
+                )}
+                {competitorPrice && (
+                  <article className="risk-item">
+                    <div><StatusBadge tone="attention">Reported</StatusBadge><h3>Competitor price mentioned</h3></div>
+                    <p>{competitorPrice}</p>
+                  </article>
+                )}
+              </div>
+            </section>
+          )}
 
           <section>
             <p className="section-label">Customer questions</p>
@@ -96,42 +227,8 @@ export function ReadinessReportPage({ request, result, onNew, onOverview }: Prop
                 </article>
               )) : (
                 <article className="risk-item">
-                  <div><StatusBadge tone="ready">None</StatusBadge><h3>No questions reported</h3></div>
-                  <p>CALL-E did not record any customer questions during this call.</p>
-                </article>
-              )}
-            </div>
-          </section>
-
-          <section>
-            <p className="section-label">Special instructions</p>
-            <div className="risk-list">
-              {instructions.length ? instructions.map((instruction, index) => (
-                <article className="risk-item" key={`${instruction}-${index}`}>
-                  <div><StatusBadge tone="attention">Noted</StatusBadge><h3>Driver / coordinator note</h3></div>
-                  <p>{instruction}</p>
-                </article>
-              )) : (
-                <article className="risk-item">
-                  <div><StatusBadge tone="ready">None</StatusBadge><h3>No new instructions</h3></div>
-                  <p>No additional instructions were captured during the call.</p>
-                </article>
-              )}
-            </div>
-          </section>
-
-          <section>
-            <p className="section-label">Unresolved items</p>
-            <div className="risk-list">
-              {blockers.length ? blockers.map((blocker, index) => (
-                <article className="risk-item" key={`${blocker}-${index}`}>
-                  <div><StatusBadge tone="critical">Pending</StatusBadge><h3>Blocker</h3></div>
-                  <p>{blocker}</p>
-                </article>
-              )) : (
-                <article className="risk-item">
-                  <div><StatusBadge tone="ready">Clear</StatusBadge><h3>No blockers reported</h3></div>
-                  <p>CALL-E did not return any unresolved blockers for this call.</p>
+                  <div><StatusBadge tone="ready">None</StatusBadge><h3>No unresolved questions</h3></div>
+                  <p>CALL-E did not record any customer questions requiring follow-up.</p>
                 </article>
               )}
             </div>
@@ -140,8 +237,8 @@ export function ReadinessReportPage({ request, result, onNew, onOverview }: Prop
           <section className="projection">
             <p className="section-label">Next action</p>
             <div>
-              <p>{humanHelp ? "Route this request to a human transport coordinator for follow-up." : "Continue the transport workflow using the confirmed call outcome."}</p>
-              <p><b>Human escalation:</b> {humanHelp ? "Required" : "Not required"}</p>
+              <p>{nextActionLabel(nextAction)}</p>
+              <p><b>Workflow action:</b> {nextAction ?? "Unavailable"}</p>
               <p><b>Call ID:</b> {result?.id ?? "Unavailable"}</p>
             </div>
           </section>
@@ -150,7 +247,7 @@ export function ReadinessReportPage({ request, result, onNew, onOverview }: Prop
         <section className="projection">
           <p className="section-label">Live outcome unavailable</p>
           <div>
-            <p>The call completed, but CALL-E did not return a structured outcome in the response available to this page.</p>
+            <p>The call completed, but CALL-E did not return the structured quote-decision outcome expected by this page.</p>
             {result?.summary && <p><b>CALL-E summary:</b> {result.summary}</p>}
             <p><b>Call ID:</b> {result?.id ?? "Unavailable"}</p>
           </div>
