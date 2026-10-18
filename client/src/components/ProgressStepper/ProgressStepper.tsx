@@ -9,11 +9,7 @@ export function ProgressStepper({ view }: { view: AppView }) {
   return (
     <ol className="stepper" aria-label="Transport coordination progress">
       {names.map((name, index) => (
-        <li
-          key={name}
-          className={index <= current ? "done" : ""}
-          aria-current={index === current ? "step" : undefined}
-        >
+        <li key={name} className={index <= current ? "done" : ""}>
           <span>{index + 1}</span>
           <small>{name}</small>
         </li>
